@@ -36,6 +36,9 @@ typedef struct{
 	OTIOList effects;
 	OTIOTime start_time;
 	OTIOTime duration_time;
+#ifdef OTIO_EXPERIMENTAL_RATE 
+	OTIODecimal rate; /* Experimental */
+#endif
 }OTIOComposable;
 
 typedef struct{

@@ -169,6 +169,73 @@ OTIOTime otio_time_object_end_get(void *object)
 		return time;
 	}
 }
+
+double otio_time_convert_double(OTIOTime *time)
+{
+	double tmp;
+	uint i;
+	tmp = (double)time->value.integer / (double)time->rate.integer;
+	if(time->value.decimal > time->rate.decimal)
+	{
+		for(i = time->rate.decimal; i < time->value.decimal; i++)
+			tmp *= 0.1;
+	}else if(time->value.decimal < time->rate.decimal)
+		for(i = time->value.decimal; i < time->rate.decimal; i++)
+			tmp *= 10.0;
+	return tmp;
+}
+extern uint assemble_json_decimal_parce(char *text, int64 *real_output, uint8 *decimal);
+
+OTIODecimal otio_decimal_set_double(double time)
+{
+	OTIODecimal d;
+	char buffer[256];
+	sprintf(buffer, "%f", time);
+	assemble_json_decimal_parce(buffer, &d.integer, &d.decimal);
+	return d;
+}
+
+double otio_decimal_get_double(OTIODecimal *d)
+{
+	double f;
+	uint i;
+	f = d->integer;
+	for(i = 0 ; i < d->decimal; i++)
+		f *= 0.1;
+	return f;
+}
+
+OTIODecimal otio_decimal_set_components(int64 integer, uint8 decimal)
+{
+	OTIODecimal d;
+	d.integer = integer;
+	d.decimal = decimal;
+	return d;
+}
+
+void otio_decimal_get_components(OTIODecimal *d, int64 *integer, uint8 *decimal)
+{
+	*integer = d->integer;
+	*decimal = d->decimal;
+}
+
+OTIODecimal otio_decimal_set_string(char *string)
+{
+	OTIODecimal d;
+	assemble_json_decimal_parce(string, &d.integer, &d.decimal);
+	return d;
+}
+
+uint otio_decimal_get_string_size(OTIODecimal *d)
+{
+	return assemble_json_decimal_print_size(d->integer, d->decimal);
+}
+
+uint otio_decimal_get_string(OTIODecimal *d, char *string)
+{
+	return assemble_json_decimal_print(string, d->integer, d->decimal); 
+}
+
 /*
 OTIOTime otio_time_get(void *object)
 {

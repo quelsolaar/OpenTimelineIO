@@ -110,6 +110,15 @@ void otio_save_node(FILE *f, OTIOObject *object, uint indentation)
 		case ORIO_OT_SEQUENCE :
 		break;
 		case ORIO_OT_CLIP : 
+#ifdef OTIO_EXPERIMENTAL_RATE
+			{	
+				OTIODecimal otio_decimal;
+				char string[OTIO_DECIMAL_PRINT_MAX + 1];				
+				otio_clip_rate_get(object, &otio_decimal);
+				string[otio_decimal_get_string(&otio_decimal, string)] = 0;	
+				fprintf(f, ",\n%s\t\"rate\" : \"%s\"", tabs, string);
+			}
+#endif
 		break;
 		case ORIO_OT_FILLER :
 		break;
@@ -261,7 +270,7 @@ void otio_io_object_load_children(AJsonValue *object, AJsonValue *root, char *na
 
 AJsonValue *otio_io_object_load(AJsonValue *root, uint expected)
 {
-	AJsonValue *object;
+	OTIOObject *object;
 	AJsonValue	*value;
 	OTIOTime time;
 	uint type, version;
@@ -284,12 +293,25 @@ AJsonValue *otio_io_object_load(AJsonValue *root, uint expected)
 	{
 		case ORIO_OT_TRACK : 
 			otio_io_object_load_children(object, root, "children", 0);
+		return FALSE;
 		break;
 		case ORIO_OT_SEQUENCE :
 			otio_io_object_load_children(object, root, "children", 0);
 		break;
 		case ORIO_OT_CLIP : 
 			otio_io_object_load_children(object, root, "media_reference", ORIO_OT_MEDIA_REFFERENCE);
+#ifdef OTIO_EXPERIMENTAL_RATE
+			value = assemble_json_object_member_search_name_get_value(root, "rate", A_JT_NUMBER);
+			if(value != NULL)
+			{	
+				AJsonDecimalNumber assemble_decimal;
+				OTIODecimal otio_decimal;
+				assemble_json_value_number_get_decimal(value, &assemble_decimal);
+				otio_decimal.integer = assemble_decimal.integer;
+				otio_decimal.decimal = assemble_decimal.decimal;
+				otio_clip_rate_set(object, otio_decimal);
+			}
+#endif
 		break;
 		case ORIO_OT_FILLER :
 		break;

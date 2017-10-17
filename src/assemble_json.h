@@ -54,8 +54,11 @@ extern char			*assemble_json_print_allocate(AJsonValue *value); /* Allocates eno
 
 #define ASSEMBLE_JSON_DECIMAL_PRINT_MAX (256 + 1 + 1) /* 256 decimals one comma and one minus */
 
-extern uint assemble_json_decimal_print(char *text, int64 integer, uint8 decimal); /* Print out the decimal number to the "text" pointer. The function does not terminate the string. The text param needs to have enough space to store the printed number either by using ASSEMBLE_JSON_DECIMAL_PRINT_MAX or by querying assemble_json_decimal_print_size. Returns the size in number of bytes. */
-extern uint assemble_json_decimal_print_size(int64 integer, uint8 decimal); /* Computes  the precise number of bytes needed to print out a decimal number. */
+extern uint			assemble_json_decimal_parce(char *text, int64 *real_output, uint8 *decimal);
+extern double		assemble_json_decimal_to_double(int64 real_output, uint8 decimal);
+extern void			assemble_json_decimal_from_double(double input, int64 *real_output, uint8 *decimal);
+extern uint			assemble_json_decimal_print(char *text, int64 integer, uint8 decimal); /* Print out the decimal number to the "text" pointer. The function does not terminate the string. The text param needs to have enough space to store the printed number either by using ASSEMBLE_JSON_DECIMAL_PRINT_MAX or by querying assemble_json_decimal_print_size. Returns the size in number of bytes. */
+extern uint			assemble_json_decimal_print_size(int64 integer, uint8 decimal); /* Computes  the precise number of bytes needed to print out a decimal number. */
 
 /* Value API */
 

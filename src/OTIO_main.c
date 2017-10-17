@@ -56,6 +56,8 @@ OTIOHeader *otio_object_create(OTIOObjectType type, char *name)
 			otio_list_clear(&composable->effects);			
 			otio_time_clear(&composable->start_time);
 			otio_time_clear(&composable->duration_time);
+			composable->rate.decimal = 0;
+			composable->rate.integer = 1;
 		}
 		break;
 		case ORIO_OT_TRANSITION :
@@ -533,6 +535,23 @@ OTIOTime otio_composable_duration_time_get(OTIOHeader *object)
 		return time;
 	}
 	return ((OTIOComposable *)object)->duration_time;
+}
+
+void otio_clip_rate_set(OTIOHeader *object, OTIODecimal rate)
+{
+	if(object->type == ORIO_OT_CLIP)
+		((OTIOComposable *)object)->rate = rate;
+}
+	
+
+OTIODecimal otio_clip_rate_get(OTIOHeader *object)
+{
+	OTIODecimal decimal;
+	if(object->type == ORIO_OT_CLIP)
+		return ((OTIOComposable *)object)->rate;
+	decimal.decimal = 0;
+	decimal.integer = 1;
+	return decimal;
 }
 
 void otio_composable_duration_time_set(OTIOHeader *object, OTIOTime duration)

@@ -582,7 +582,7 @@ const int assemble_type_append[] = {TRUE, // A_JT_TRUE,
 extern uint assemble_json_parse_object(unsigned char *link, const char *string, uint8 **memory, AJsonType number_type);
 extern uint assemble_json_messure_object(const char *string, size_t *memory, AJsonType number_type);
 
-uint assemble_parce_real(char *text, int64 *real_output, uint8 *decimal)
+uint assemble_json_decimal_parce(char *text, int64 *real_output, uint8 *decimal)
 {
 	int64 out = 0;
 	double divider = 0.1, neg = 1.0;
@@ -1046,7 +1046,7 @@ uint assemble_json_parse_value(const char *string, uint8 **memory, int array, AJ
 				uint8 decimal;
 				value = *memory;
 				value[0] = A_JT_NUMBER_DECIMAL | ASSEMBLE_JSON_WRITE_PROTECTED;
-				pos = assemble_parce_real(string, &number, &decimal);
+				pos = assemble_json_decimal_parce(string, &number, &decimal);
 				memcpy(&value[1], &number, sizeof(int64));
 				value[1 + sizeof(int64)] = decimal; 
 				*memory += sizeof(int64) + 2;
@@ -1984,7 +1984,7 @@ uint assemble_json_value_number_set_float(uint8 *value, float number)
 		int64 real_output;
 		uint8 decimal;
 		sprintf(buffer, "%f", number);
-		assemble_parce_real(buffer, &real_output, &decimal);
+		assemble_json_decimal_parce(buffer, &real_output, &decimal);
 		memcpy(&value[1], &real_output, sizeof(int64));
 		value[1 + sizeof(int64)] = decimal;
 	}
@@ -2045,7 +2045,7 @@ uint assemble_json_value_number_set_double(uint8 *value, double number)
 		int64 real_output;
 		uint8 decimal;
 		sprintf(buffer, "%f", number);
-		assemble_parce_real(buffer, &real_output, &decimal);
+		assemble_json_decimal_parce(buffer, &real_output, &decimal);
 		memcpy(&value[1], &real_output, sizeof(int64));
 		value[1 + sizeof(int64)] = decimal;
 	}
@@ -2069,14 +2069,14 @@ void assemble_json_value_number_get_decimal(uint8 *value, AJsonDecimalNumber *de
 		float number;
 		memcpy(&number, &value[1], sizeof(float));
 		sprintf(buffer, "%f", number);
-		assemble_parce_real(buffer, &decimal->integer, &decimal->decimal);
+		assemble_json_decimal_parce(buffer, &decimal->integer, &decimal->decimal);
 	}else if(type == A_JT_NUMBER_DOUBLE)
 	{
 		char buffer[64];
 		double number;
 		memcpy(&number, &value[1], sizeof(double));
 		sprintf(buffer, "%f", number);
-		assemble_parce_real(buffer, &decimal->integer, &decimal->decimal);
+		assemble_json_decimal_parce(buffer, &decimal->integer, &decimal->decimal);
 	}else
 	{
 		int64 integet;
@@ -2284,7 +2284,7 @@ uint8 *assemble_json_value_allcoate(AJsonType type, double number, char *string)
 			int64 real_output;
 			uint8 decimal;
 			sprintf(buffer, "%f", number);
-			assemble_parce_real(buffer, &real_output, &decimal);
+			assemble_json_decimal_parce(buffer, &real_output, &decimal);
 			memcpy(&value[1], &real_output, sizeof(int64));
 			value[1 + sizeof(int64)] = decimal;
 		}

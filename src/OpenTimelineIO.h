@@ -24,6 +24,9 @@ typedef unsigned char uint8;
 #define TRUE !FALSE
 #endif
 
+
+#define OTIO_EXPERIMENTAL_RATE /* Experimental storage of rate in clips */
+
 /* enum for all the types of objects that OTIO can store: */
 
 typedef enum{
@@ -84,21 +87,23 @@ extern void			*otio_object_user_data_get(OTIOObject *object); /* Get the attache
 
 /* Decimal functions*/
 
-extern void			otio_decimal_set_double(OTIODecimal *d, double time); /* Creates a decimal number from a 64bit double. Beware tha5t this can cause rounding errors. */
-extern double		otio_decimal_get_double(OTIODecimal *d); /* Creates a decimal number from a 64bit double. Beware that this can cause rounding errors. */
-extern void			otio_decimal_set_components(OTIODecimal *d, int64 values, uint8 decimal); /* Creates a decimal value from a 64bit integer value and a 8 bit decimal position. Example to set the framerate 29.97fps: otio_decimal_set_components(d, 2997, 2); */
+#define OTIO_DECIMAL_PRINT_MAX ASSEMBLE_JSON_DECIMAL_PRINT_MAX
+
+extern OTIODecimal	otio_decimal_set_double(double time); /* Creates a decimal number from a 64bit double. Beware tha5t this can cause rounding errors. */
+extern double		otio_decimal_get_double(OTIOTime time); /* Creates a decimal number from a 64bit double. Beware that this can cause rounding errors. */
+extern OTIODecimal	otio_decimal_set_components(int64 integer, uint8 decimal); /* Creates a decimal value from a 64bit integer value and a 8 bit decimal position. Example to set the framerate 29.97fps: otio_decimal_set_components(d, 2997, 2); */
 extern void			otio_decimal_get_components(OTIODecimal *d, int64 *values, uint8 *decimal); /* Creates a decimal value from a 64bit integer value and a 8 bit decimal position. Example to set the framerate 29.97fps: otio_decimal_set_components(d, 2997, 2); */
-extern void			otio_decimal_set_string(OTIODecimal *d, char *string); /* Creates a decimal value from a string. The string can only contain the characters '-', '.' and '0' to '9'. The function will stop parsing if any other caharacter is found (such as null or white space).*/
-extern uint			otio_decimal_get_string_size(OTIODecimal *d, char *string); /* Returns the size that will be needed by the function otio_decimal_get_string to pring out a value. */
-extern void			otio_decimal_get_string(OTIODecimal *d, char *string); /* Prints a s*/
+extern OTIODecimal	otio_decimal_set_string(char *string); /* Creates a decimal value from a string. The string can only contain the characters '-', '.' and '0' to '9'. The function will stop parsing if any other caharacter is found (such as null or white space).*/
+extern uint			otio_decimal_get_string_size(OTIODecimal *d); /* Returns the size that will be needed by the function otio_decimal_get_string to pring out a value. */
+extern uint			otio_decimal_get_string(OTIODecimal *d, char *string); /* Prints a decimal to a string. Returns tghe length of the string. the string will not be terminated. */
 
 /* Time functionality */
 
-extern double		otio_time_convert_double(OTIOTime time);
 extern OTIOTime		otio_time_add(OTIOTime time_a, OTIOTime time_b); /* Adds two OTIOTime structs together correctly and returns the sum. */
 extern OTIOTime		otio_time_subtract(OTIOTime time_a, OTIOTime time_b);/* Subtracts time_b from time_a and returns the result. */
 extern OTIOTime		otio_time_object_start_get(void *object);
 extern OTIOTime		otio_time_object_end_get(void *object);
+extern double		otio_time_convert_double(OTIOTime time);
 
 /* Functions only applicable to composable objects. (ORIO_OT_TRACK, ORIO_OT_SEQUENCE, ORIO_OT_CLIP, ORIO_OT_FILLER, and ORIO_OT_TRANSITION) */
 
@@ -118,6 +123,10 @@ extern void			otio_composable_start_time_set(OTIOObject *object, OTIOTime start_
 extern OTIOTime		otio_composable_duration_time_get(OTIOObject *object);/* Get the duration time of the composable object. */
 extern void			otio_composable_duration_time_set(OTIOObject *object, OTIOTime duration);/* Set the duration time of the composable object. */
 
+#ifdef OTIO_EXPERIMENTAL_RATE
+extern void			otio_clip_rate_set(OTIOObject *object, OTIODecimal rate); /* Set the frame rate of a clip. */
+extern OTIODecimal  otio_clip_rate_get(OTIOObject *object); /* Get the frame rate of a clip. */
+#endif
 /* Functions only applicable to objects of the type ORIO_OT_MEDIA_REFFERENCE. Media reference objects can only be children to Clips */
 
 #define OTIT_MEDIA_REFERENCE_KIND_STORYBOARD "Storyboard" /* These defines are place holders I made up for now.*/
