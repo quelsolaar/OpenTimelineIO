@@ -8,6 +8,9 @@
 #define TRUE !FALSE
 
 typedef unsigned int uint;
+typedef signed long long int64;
+
+
 
 typedef struct{
 	void *first;

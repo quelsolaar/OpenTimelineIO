@@ -55,10 +55,13 @@ void otio_save_list(FILE *f, OTIOObject *child, char *tabs, uint indentation, ch
 
 void otio_save_time(FILE *f, char *tabs, char *name, OTIOTime time)
 {
+	char buffer[ASSEMBLE_JSON_DECIMAL_PRINT_MAX];
 	fprintf(f, ",\n%s\"%s\": {", tabs, name);
 	fprintf(f, "\n%s\t\"OTIO_SCHEMA\" : \"RationalTime.1\",", tabs);
-	fprintf(f, "\n%s\t\"rate\" : %f,", tabs, time.time_scale);
-	fprintf(f, "\n%s\t\"value\" : %f", tabs, time.time_value);
+	buffer[assemble_json_decimal_print(buffer, time.value.integer, time.value.decimal)] = 0;
+	fprintf(f, "\n%s\t\"value\" : %s,", tabs, buffer);
+	buffer[assemble_json_decimal_print(buffer, time.rate.integer, time.rate.decimal)] = 0;
+	fprintf(f, "\n%s\t\"rate\" : %s", tabs, buffer);
 	fprintf(f, "\n%s}", tabs);
 }
 
@@ -194,6 +197,7 @@ uint otio_io_object_shema_get(AJsonValue *root, uint *version)
 
 uint otio_io_rational_time_get(AJsonValue *root, char *name, OTIOTime *time)
 {
+	AJsonDecimalNumber decimal;
 	AJsonValue	*value, *member;
 	uint version;
 	member = assemble_json_object_member_search_name_get_value(root, name, A_JT_OBJECT);
@@ -203,12 +207,19 @@ uint otio_io_rational_time_get(AJsonValue *root, char *name, OTIOTime *time)
 		return FALSE;
 	value = assemble_json_object_member_search_name_get_value(member, "rate", A_JT_NUMBER);
 	if(value != NULL)
-		time->time_scale = assemble_json_value_number_get_double(value);
-	else
+	{	
+		assemble_json_value_number_get_decimal(value, &decimal);
+		time->rate.integer = decimal.integer;
+		time->rate.decimal = decimal.decimal;
+	}else
 		return FALSE;
 	value = assemble_json_object_member_search_name_get_value(member, "value", A_JT_NUMBER);
 	if(value != NULL)
-		time->time_value = assemble_json_value_number_get_double(value);
+	{
+		assemble_json_value_number_get_decimal(value, &decimal);
+		time->value.integer = decimal.integer;
+		time->value.decimal = decimal.decimal;
+	}
 	else
 		return FALSE;
     return TRUE;
@@ -329,16 +340,15 @@ extern uint assemble_json_print(char *array, AJsonValue *value, uint indentation
 
 OTIOObject *otio_load(char *string)
 {
-	char *array;
+	OTIOObject *object;
 	AJsonValue	*value;
-	uint pos, pos2;
 //	string = "[0., 2, 3, 4]";
-	value = assemble_json_parse(string, TRUE, A_JT_NUMBER_DECIMAL);
+	value = assemble_json_parse(string, FALSE, A_JT_NUMBER_DECIMAL);
 	if(value == NULL)
 		return NULL;
-	pos = assemble_json_print_size(value, 0);
+/*	pos = assemble_json_print_size(value, 0);
 	array = malloc(pos + 1);
-/*	{
+	{
 		uint i, pointer;
 		unsigned char *a;
 		char text[2] = {0, 0};
@@ -351,12 +361,15 @@ OTIOObject *otio_load(char *string)
 			text[0] = a[i];
 			printf("%u %u %u %u - %u - %s\n", pointer % 256, (pointer / 256) % 256, (pointer / (256 * 256)) % 256, (pointer / (256 * 256 * 256)) % 256, (uint)a[i], text);
 		}
-	}*/
+	}
 	assemble_json_print(array, value, 0);
 	array[pos] = 0;
 	printf("%s", array);
-	free(array);
+	free(array);*/
 	if(A_JT_OBJECT != assemble_json_value_type_get(value))
-		return NULL;
-	return otio_io_object_load(value, 0);
+		object = NULL;
+	else
+		object = otio_io_object_load(value, 0);
+	assemble_json_free(value);
+	return object;
 }

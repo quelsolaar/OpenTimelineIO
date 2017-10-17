@@ -10,7 +10,10 @@ void otio_generate_random(OTIOObject *parent, uint recursions, uint count, uint 
 	OTIOObjectType type;
 	OTIOObject *object, *media;
 	uint i;
-	time.time_scale = 24;
+	time.value.integer = 24;
+	time.value.decimal = 0;
+	time.rate.integer = 24;
+	time.rate.decimal = 0;
 	for(i = 0; i < count; i++)
 	{
 		if(recursions != 0)
@@ -22,10 +25,10 @@ void otio_generate_random(OTIOObject *parent, uint recursions, uint count, uint 
 		otio_object_insert_before(parent, object, NULL);
 		if(type < ORIO_OT_COMPOSABLE_END)
 		{
-			time.time_value = (*seed) % 24;
+			time.value.integer = (*seed) % 24;
 			(*seed)++;
 			otio_composable_start_time_set(object, time);
-			time.time_value = (*seed) % 56;
+			time.value.integer = (*seed) % 56;
 			(*seed)++;
 			otio_composable_duration_time_set(object, time);
 		}
@@ -45,17 +48,17 @@ void otio_generate_random(OTIOObject *parent, uint recursions, uint count, uint 
 			break;
 			case ORIO_OT_TRANSITION :
 				otio_transition_type_set(object, "SMPTE_Dissolve");
-				time.time_value = (*seed) % 24;
+				time.value.integer = (*seed) % 24;
 				(*seed)++;
 				otio_transition_in_time_set(object, time);
-				time.time_value = (*seed) % 13;
+				time.value.integer = (*seed) % 13;
 				(*seed)++;
 				otio_transition_out_time_set(object, time);
 			break;
 			case ORIO_OT_EFFECT :
 			break;
 			case ORIO_OT_MARKER :
-				time.time_value = (*seed) % 32;
+				time.value.integer = (*seed) % 32;
 				(*seed)++;
 				otio_marker_time_set(object, time);
 				otio_marker_message_set(object, "Awesome stuff!");
@@ -93,14 +96,17 @@ char *assemble_file_load(char *file)
 	return buffer;
 }
 
+void test();
+
 int main(int argc, char **argv)
 {	
 	OTIOObject *object;
 	uint seed = 0;
+	test();
 	object = otio_object_create(ORIO_OT_SEQUENCE, "My sequence");
 	otio_generate_random(object, 2, 4, &seed);
 	otio_save("random_output.json", object);
 	object = otio_load(assemble_file_load("random_output.json"));
 	otio_save("random_re_output.json", object);
-	return 1;	
+	return 0;	
 }

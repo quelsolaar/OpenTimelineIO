@@ -30,6 +30,14 @@ void otio_list_clear(OTIOList *list)
 	list->count = 0;
 }
 
+void otio_time_clear(OTIOTime *time)
+{
+	time->value.integer = 1;
+	time->value.decimal = 0;
+	time->rate.integer = 1;
+	time->rate.decimal = 0;
+}
+
 OTIOHeader *otio_object_create(OTIOObjectType type, char *name)
 {
 	OTIOHeader *object;
@@ -45,11 +53,9 @@ OTIOHeader *otio_object_create(OTIOObjectType type, char *name)
 			object = (OTIOHeader *)composable;
 			otio_list_clear(&composable->children);
 			otio_list_clear(&composable->markers);
-			otio_list_clear(&composable->effects);
-			composable->start_time.time_scale = 1;
-			composable->start_time.time_value = 0;
-			composable->duration_time.time_scale = 1;	
-			composable->duration_time.time_value = 0;	
+			otio_list_clear(&composable->effects);			
+			otio_time_clear(&composable->start_time);
+			otio_time_clear(&composable->duration_time);
 		}
 		break;
 		case ORIO_OT_TRANSITION :
@@ -57,18 +63,14 @@ OTIOHeader *otio_object_create(OTIOObjectType type, char *name)
 			OTIOTransition *transition;
 			transition = malloc(sizeof *transition);
 			object = (OTIOHeader *)transition;
-			transition->transition_type = NULL;
-			transition->in_time.time_scale = 1;
-			transition->in_time.time_value = 1;
-			transition->out_time.time_scale = 1;
-			transition->out_time.time_value = 1;
+			transition->transition_type = NULL;	
+			otio_time_clear(&transition->in_time);
+			otio_time_clear(&transition->out_time);
 			otio_list_clear(&transition->header.children);
 			otio_list_clear(&transition->header.markers);
 			otio_list_clear(&transition->header.effects);
-			transition->header.start_time.time_scale = 1;
-			transition->header.start_time.time_value = 0;
-			transition->header.duration_time.time_scale = 1;	
-			transition->header.duration_time.time_value = 0;
+			otio_time_clear(&transition->header.start_time);
+			otio_time_clear(&transition->header.duration_time);
 		}
 		break;
 		case ORIO_OT_EFFECT :
@@ -83,8 +85,7 @@ OTIOHeader *otio_object_create(OTIOObjectType type, char *name)
 			OTIOMarker *marker;
 			marker = malloc(sizeof *marker);
 			object = (OTIOHeader *)marker;
-			marker->time.time_scale = 1;
-			marker->time.time_value = 0;
+			otio_time_clear(&marker->time);
 			marker->message = NULL;
 		}
 		break;
@@ -95,8 +96,7 @@ OTIOHeader *otio_object_create(OTIOObjectType type, char *name)
 			object = (OTIOHeader *)media_reference;
 			media_reference->kind = NULL;
 			media_reference->uri = NULL;
-			media_reference->available_range.time_scale = 1;
-			media_reference->available_range.time_value = 0;
+			otio_time_clear(&media_reference->available_range);
 		}
 		break;
         case ORIO_OT_COUNT:
@@ -512,8 +512,7 @@ OTIOTime otio_composable_start_time_get(OTIOHeader *object)
 	if(object->type >= ORIO_OT_COMPOSABLE_END)
 	{
 		OTIOTime time;
-		time.time_scale = 0;
-		time.time_scale = 0;
+		otio_time_clear(&time);
 		return time;
 	}
 	return ((OTIOComposable *)object)->start_time;
@@ -530,8 +529,7 @@ OTIOTime otio_composable_duration_time_get(OTIOHeader *object)
 	if(object->type >= ORIO_OT_COMPOSABLE_END)
 	{
 		OTIOTime time;
-		time.time_scale = 0;
-		time.time_scale = 0;
+		otio_time_clear(&time);
 		return time;
 	}
 	return ((OTIOComposable *)object)->duration_time;
@@ -582,8 +580,7 @@ OTIOTime otio_media_reference_available_range_get(OTIOHeader *object)
 	if(object->type != ORIO_OT_MEDIA_REFFERENCE)
 	{
 		OTIOTime time;
-		time.time_scale = 0;
-		time.time_scale = 0;
+		otio_time_clear(&time);
 		return time;
 	}
 	return ((OTIOMediaReferences *)object)->available_range;
@@ -617,8 +614,7 @@ OTIOTime otio_transition_in_time_get(OTIOHeader *object)
 	if(object->type != ORIO_OT_TRANSITION)
 	{
 		OTIOTime time;
-		time.time_scale = 0;
-		time.time_scale = 0;
+		otio_time_clear(&time);
 		return time;
 	}
 	return ((OTIOTransition *)object)->in_time;
@@ -635,8 +631,7 @@ OTIOTime otio_transition_out_time_get(OTIOHeader *object)
 	if(object->type != ORIO_OT_TRANSITION)
 	{
 		OTIOTime time;
-		time.time_scale = 0;
-		time.time_scale = 0;
+		otio_time_clear(&time);
 		return time;
 	}
 	return ((OTIOTransition *)object)->in_time;
@@ -653,8 +648,7 @@ OTIOTime otio_marker_time_get(OTIOHeader *object)
 	if(object->type != ORIO_OT_MARKER)
 	{
 		OTIOTime time;
-		time.time_scale = 0;
-		time.time_scale = 0;
+		otio_time_clear(&time);
 		return time;
 	}
 	return ((OTIOMarker *)object)->time;
@@ -769,3 +763,6 @@ OTIOHeader *otio_object_clone(OTIOHeader *object, uint recursively)
 	}
 	return clone;
 }
+
+
+

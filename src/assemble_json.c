@@ -619,7 +619,7 @@ uint assemble_parce_real(char *text, int64 *real_output, uint8 *decimal)
 	return i;
 }
 
-uint assemble_parce_real_print(char *text, int64 real, uint8 decimal)
+uint assemble_json_decimal_print(char *text, int64 real, uint8 decimal)
 {
 	int64 tmp;
 	char *t;
@@ -681,19 +681,19 @@ uint assemble_parce_real_print(char *text, int64 real, uint8 decimal)
 	}
 }
 
-uint assemble_parce_real_size(int64 real, uint8 decimal)
+uint assemble_json_decimal_print_size(int64 integer, uint8 decimal)
 {
 	int64 tmp;
 	uint i, neg = 0;
-	if(real < 0)
+	if(integer < 0)
 	{
 		neg = 1;
-		tmp = -real;
+		tmp = -integer;
 	}else
-		tmp = real;
+		tmp = integer;
 	for(i = 0; tmp != 0; i++)
 		tmp /= 10;
-	tmp = real;
+	tmp = integer;
 	if(decimal == 0)
 	{
 		if(i == 0)	
@@ -1179,7 +1179,7 @@ void assemble_json_clone_internal(uint8 *to_value, uint8 *from_value)
 			{
 				for(i = sizeof(void *); from_member[i] != 0; i++);
 				i++;
-				to_member = malloc(i + assemble_type_size[i]);
+				to_member = malloc(i + assemble_type_size[(from_member[i] & ASSEMBLE_JSON_TYPE_MASK)]);
 #ifdef ASSEMBLE_JSON_ENABLE_RUNTIME_ERRORS
 				if(to_member == NULL)
 				{
@@ -1187,11 +1187,9 @@ void assemble_json_clone_internal(uint8 *to_value, uint8 *from_value)
 					break;
 				}
 #endif
-				memcpy(&previous, &to_member, sizeof(void *));
+				memcpy(previous, &to_member, sizeof(void *));
 				previous = to_member;
-				for(i = sizeof(void *); from_member[i] != 0; i++)
-					to_member[i] = from_member[i];
-				to_member[i] = 0;
+				memcpy(&to_member[sizeof(void *)], &from_member[sizeof(void *)], i - sizeof(void *));
 				assemble_json_clone_internal(&to_member[i], &from_member[i]);
 			}
 			for(i = 0; i < sizeof(void *); i++)
@@ -1201,21 +1199,22 @@ void assemble_json_clone_internal(uint8 *to_value, uint8 *from_value)
 		case A_JT_ARRAY :
 		{
 			uint8 *previous, *from_member, *to_member; 
-			uint i;
+			uint i, size;
 			to_value[0] = A_JT_ARRAY;
 			memcpy(&to_value[1], &from_value[1], sizeof(AJasonArrayCount));
 			previous = &to_value[1 + sizeof(AJasonArrayCount)];
 			for(memcpy(&from_member, &from_value[1 + sizeof(AJasonArrayCount)], sizeof(void *)); from_member != NULL; )
 			{
-				to_member = malloc(assemble_type_size[A_JT_ARRAY] + sizeof(void *));
-				memcpy(&previous, &to_member, sizeof(void *));
-				previous = to_member;
+				size = assemble_type_size[*from_member & ASSEMBLE_JSON_TYPE_MASK];
+				to_member = malloc(size + sizeof(void *));
+				memcpy(previous, &to_member, sizeof(void *));
+				previous = &to_member[size];
 				assemble_json_clone_internal(to_member, from_member);
 				to_member[0] |= ASSEMBLE_JSON_ARRAY;
 				if(from_member[0] & ASSEMBLE_JSON_ARRAY_FOLOW)
-					from_member = &from_member[assemble_type_size[*from_member & ASSEMBLE_JSON_TYPE_MASK]];
+					from_member = &from_member[size];
 				else
-					memcpy(&from_member, &from_member[assemble_type_size[*from_member & ASSEMBLE_JSON_TYPE_MASK]], sizeof(void *));
+					memcpy(&from_member, &from_member[size], sizeof(void *));
 			}
 			for(i = 0; i < sizeof(void *); i++)
 				previous[i] = 0;
@@ -1247,7 +1246,7 @@ uint8 *assemble_json_clone(uint8 *value)
 		return NULL;
 	}
 #endif
-	assemble_json_clone_internal(value, to_value);
+	assemble_json_clone_internal(to_value, value);
 	return to_value;
 }
 
@@ -1303,7 +1302,7 @@ uint assemble_json_print_size(uint8 *value, uint indentation)
 		{
 			int64 n;
 			memcpy(&n, &value[1], sizeof(int64));
-			return assemble_parce_real_size(n, value[1 + sizeof(int64)]);
+			return assemble_json_decimal_print_size(n, value[1 + sizeof(int64)]);
 		}
 		return pos;
 		case A_JT_OBJECT : 
@@ -1446,7 +1445,7 @@ uint assemble_json_print(char *array, uint8 *value, uint indentation)
 		{
 			int64 n;
 			memcpy(&n, &value[1], sizeof(int64));
-			return assemble_parce_real_print(array, n, value[1 + sizeof(int64)]);				
+			return assemble_json_decimal_print(array, n, value[1 + sizeof(int64)]);				
 		}
 		case A_JT_OBJECT : 
 		{
@@ -1723,6 +1722,8 @@ uint8 *assemble_json_object_member_search_name_get_member(uint8 *value, char *na
 		return NULL;
 	}
 #endif
+	if(type != -1)
+		type %= A_JT_MODULO;
 	for(memcpy(&object, &value[1], sizeof(void *)); object != NULL; object = next)
 	{
 		next = object;
@@ -1731,7 +1732,7 @@ uint8 *assemble_json_object_member_search_name_get_member(uint8 *value, char *na
 		{
 			if(name[i] == 0)
 			{
-				if(type == -1 || type == (object[i + 1] & ASSEMBLE_JSON_TYPE_MASK))
+				if(type == -1 || type == (object[i + 1] & ASSEMBLE_JSON_TYPE_MASK) % A_JT_MODULO)
 					return next;
 				else
 					break;
@@ -1744,7 +1745,7 @@ uint8 *assemble_json_object_member_search_name_get_member(uint8 *value, char *na
 
 uint8 *assemble_json_object_member_search_name_get_value(uint8 *value, char *name, uint type)
 {
-	uint8 *object, *next;
+	uint8 *member, *next;
 	uint i;
 #ifdef ASSEMBLE_JSON_ENABLE_DEVELOPER_ERRORS
 	if((*value & ASSEMBLE_JSON_TYPE_MASK) != A_JT_OBJECT)
@@ -1753,16 +1754,18 @@ uint8 *assemble_json_object_member_search_name_get_value(uint8 *value, char *nam
 		return NULL;
 	}
 #endif
-	for(memcpy(&object, &value[1], sizeof(void *)); object != NULL; object = next)
+	if(type != -1)
+		type %= A_JT_MODULO;
+	for(memcpy(&member, &value[1], sizeof(void *)); member != NULL; member = next)
 	{
-		next = object;
-		object += sizeof(void *);
-		for(i = 0; name[i] == object[i]; i++)
+		next = member;
+		member += sizeof(void *);
+		for(i = 0; name[i] == member[i]; i++)
 		{
 			if(name[i] == 0)
 			{
-				if(type == -1 || type == (object[i + 1] & ASSEMBLE_JSON_TYPE_MASK))
-					return &object[i];
+				if(type == -1 || type == (member[i + 1] & ASSEMBLE_JSON_TYPE_MASK) % A_JT_MODULO)
+					return &member[i + 1];
 				else
 					break;
 			}
@@ -1785,6 +1788,8 @@ uint8 *assemble_json_object_member_search_name_detach_value(uint8 *value, char *
 	}
 #endif
 	memcpy(&last, &value[1], sizeof(void *));
+	if(type != -1)
+		type %= A_JT_MODULO;
 	for(object = last; object != NULL; object = next)
 	{
 		next = object;
@@ -1794,7 +1799,7 @@ uint8 *assemble_json_object_member_search_name_detach_value(uint8 *value, char *
 			if(name[i] == 0)
 			{	
 				object = &object[i + 1];
-				if(type == -1 || type == (*object & ASSEMBLE_JSON_TYPE_MASK))
+				if(type == -1 || type == (*object & ASSEMBLE_JSON_TYPE_MASK) % A_JT_MODULO)
 				{
 					copy = malloc(assemble_type_size[*object]);
 					memcpy(copy, object, assemble_type_size[*object]);
@@ -1829,6 +1834,8 @@ int assemble_json_object_member_search_name_delete_value(uint8 *value, char *nam
 	}
 #endif
 	memcpy(&last, &value[1], sizeof(void *));
+	if(type != -1)
+		type %= A_JT_MODULO;
 	for(object = last; object != NULL; object = next)
 	{
 		next = object;
@@ -1838,7 +1845,7 @@ int assemble_json_object_member_search_name_delete_value(uint8 *value, char *nam
 			if(name[i] == 0)
 			{	
 				object = &object[i + 1];
-				if(type == -1 || type == (*object & ASSEMBLE_JSON_TYPE_MASK))
+				if(type == -1 || type == (*object & ASSEMBLE_JSON_TYPE_MASK) % A_JT_MODULO)
 				{
 					assemble_json_free_internal(object);
 					memcpy(last, next, sizeof(void *));
@@ -2363,6 +2370,8 @@ uint8 *assemble_json_object_member_add_create(uint8 *object, char *name, AJsonTy
 		return NULL;
 	}
 #endif
+	if(type % A_JT_MODULO != A_JT_BOOLEAN && data == NULL)
+		type = A_JT_NULL;
 	for(i = 0; name[i] != 0; i++);
 	member = malloc(sizeof(void *) + i + 1 + assemble_type_size[type]);
 #ifdef ASSEMBLE_JSON_ENABLE_RUNTIME_ERRORS
